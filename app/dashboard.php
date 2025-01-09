@@ -23,6 +23,53 @@ foreach ($category_stats as $stat) {
     $categories[] = $stat['category_name'];
     $counts[] = $stat['article_count'];
 }
+
+
+// Database connection
+$host = "localhost"; 
+$dbname = "devblog_db"; 
+$username = "root"; 
+$password = ""; 
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+    $sql = "
+        SELECT 
+            a.id_author,
+            u.username,
+            u.profile_picture_url,
+            COUNT(ar.id) AS article_count,
+            SUM(ar.views) AS total_views
+        FROM 
+            authors a
+        INNER JOIN 
+            users u ON a.user_id = u.id_user
+        LEFT JOIN 
+            articles ar ON a.id_author = ar.author_id
+        GROUP BY 
+            a.id_author, u.username, u.profile_picture_url
+        ORDER BY 
+            total_views DESC
+        LIMIT 3;
+    ";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute();
+    $top_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+// Top ARticles
+$query = "SELECT * FROM articles ORDER BY views DESC LIMIT 2";
+$top_articles = $pdo->query($query)->fetchAll();
+
+
+} catch (PDOException $e) {
+    $top_users = [];
+    $top_articles = [];  
+    echo "Error: " . $e->getMessage();
+}
 ?>
 
 <!DOCTYPE html>
@@ -154,111 +201,116 @@ foreach ($category_stats as $stat) {
                         <!-- Area Chart -->
                         <!-- Content Column -->
                         <div class="col-xl-8 col-lg-7">
-                            <!-- Top Authors Card -->
-                            <div class="card shadow mb-4">
-                                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                                    <h6 class="m-0 font-weight-bold text-primary">Top Authors</h6>
-                                    <div class="dropdown no-arrow">
-                                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
-                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
-                                        </a>
-                                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
-                                            aria-labelledby="dropdownMenuLink">
-                                            <div class="dropdown-header">Actions:</div>
-                                            <a class="dropdown-item" href="users.php">View All Users</a>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="card-body">
-                                    <?php foreach ($top_users as $index => $user): ?>
-                                        <div class="d-flex align-items-center mb-3">
-                                            <div class="mr-3">
-                                                <div class="icon-circle bg-primary text-white">
-                                                    <?php if ($user['profile_picture_url']): ?>
-                                                        <img src="<?= htmlspecialchars($user['profile_picture_url']) ?>"
-                                                            class="rounded-circle"
-                                                            style="width: 40px; height: 40px; object-fit: cover;"
-                                                            alt="<?= htmlspecialchars($user['username']) ?>">
-                                                    <?php else: ?>
-                                                        <i class="fas fa-user"></i>
-                                                    <?php endif; ?>
-                                                </div>
-                                            </div>
-                                            <div class="flex-grow-1">
-                                                <div class="small text-gray-500">Author #<?= $index + 1 ?></div>
-                                                <div class="font-weight-bold"><?= htmlspecialchars($user['username']) ?></div>
-                                                <div class="text-gray-800">
-                                                    <?= number_format($user['article_count']) ?> articles
-                                                    <span class="mx-1">•</span>
-                                                    <?= number_format((int)$user['total_views']) ?> total views
-                                                </div>
-                                            </div>
-                                            <div class="ml-2">
-                                                <a href="./entities/users/user-profile.php?id=<?= $user['id'] ?>"
-                                                    class="btn btn-primary btn-sm">
-                                                    View Profile
-                                                </a>
-                                            </div>
-                                        </div>
-                                        <?php if ($index < count($top_users) - 1): ?>
-                                            <hr>
-                                        <?php endif; ?>
-                                    <?php endforeach; ?>
-                                </div>
-                            </div>
+<!-- Top Authors Card -->
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+        <h6 class="m-0 font-weight-bold text-primary">Top Authors</h6>
+        <div class="dropdown no-arrow">
+            <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+            </a>
+            <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
+                <div class="dropdown-header">Actions:</div>
+                <a class="dropdown-item" href="users.php">View All Users</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <?php if (!empty($top_users)): ?>
+            <?php foreach ($top_users as $index => $user): ?>
+                <div class="d-flex align-items-center mb-3">
+                    <div class="mr-3">
+                        <div class="icon-circle bg-primary text-white">
+                            <?php if (!empty($user['profile_picture_url'])): ?>
+                                <img src="<?= htmlspecialchars($user['profile_picture_url']) ?>"
+                                     class="rounded-circle"
+                                     style="width: 40px; height: 40px; object-fit: cover;"
+                                     alt="<?= htmlspecialchars($user['username']) ?>">
+                            <?php else: ?>
+                                <i class="fas fa-user"></i>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="small text-gray-500">Author #<?= $index + 1 ?></div>
+                        <div class="font-weight-bold"><?= htmlspecialchars($user['username']) ?></div>
+                        <div class="text-gray-800">
+                            <?= number_format((int)$user['article_count']) ?> articles
+                            <span class="mx-1">•</span>
+                            <?= number_format((int)$user['total_views']) ?> total views
+                        </div>
+                    </div>
+                    <div class="ml-2">
+                        <a href="./entities/users/user-profile.php?id=<?= htmlspecialchars($user['id_author']) ?>"
+                           class="btn btn-primary btn-sm">
+                            View Profile
+                        </a>
+                    </div>
+                </div>
+                <?php if ($index < count($top_users) - 1): ?>
+                    <hr>
+                <?php endif; ?>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <p>No authors found.</p>
+        <?php endif; ?>
+    </div>
+</div>
+
 
                             <!-- Top Articles Card -->
-                            <div class="card shadow mb-4">
-                                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                                    <h6 class="m-0 font-weight-bold text-primary">Most Read Articles</h6>
-                                    <div class="dropdown no-arrow">
-                                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink2"
-                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
-                                        </a>
-                                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
-                                            aria-labelledby="dropdownMenuLink2">
-                                            <div class="dropdown-header">Actions:</div>
-                                            <a class="dropdown-item" href="./entities/articles/articles.php">View All Articles</a>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="card-body">
-                                    <?php foreach ($top_articles as $index => $article): ?>
-                                        <div class="d-flex align-items-center mb-3">
-                                            <div class="mr-3">
-                                                <div class="icon-circle bg-success text-white">
-                                                    <i class="fas fa-newspaper"></i>
-                                                </div>
-                                            </div>
-                                            <div class="flex-grow-1">
-                                                <div class="small text-gray-500">
-                                                    Published <?= date('M d, Y', strtotime($article['created_at'])) ?>
-                                                    by <?= htmlspecialchars($article['author_name']) ?>
-                                                </div>
-                                                <div class="font-weight-bold"><?= htmlspecialchars($article['title']) ?></div>
-                                                <div class="text-gray-800">
-                                                    <i class="fas fa-eye mr-1"></i>
-                                                    <?= number_format($article['views']) ?> views
-                                                </div>
-                                            </div>
-                                            <div class="ml-2">
-                                                <a href="./entities/articles/view-article.php?id=<?= $article['id'] ?>"
-                                                    class="btn btn-success btn-sm">
-                                                    Read Article
-                                                </a>
-                                            </div>
-                                        </div>
-                                        <?php if ($index < count($top_articles) - 1): ?>
-                                            <hr>
-                                        <?php endif; ?>
-                                    <?php endforeach; ?>
-                                </div>
-                            </div>
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+        <h6 class="m-0 font-weight-bold text-primary">Most Read Articles</h6>
+        <div class="dropdown no-arrow">
+            <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+            </a>
+            <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink2">
+                <div class="dropdown-header">Actions:</div>
+                <a class="dropdown-item" href="./entities/articles/articles.php">View All Articles</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <?php if (!empty($top_articles)): ?>
+            <?php foreach ($top_articles as $index => $article): ?>
+                <div class="d-flex align-items-center mb-3">
+                    <div class="mr-3">
+                        <div class="icon-circle bg-success text-white">
+                            <i class="fas fa-newspaper"></i>
                         </div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="small text-gray-500">
+                            Created_at: <?= htmlspecialchars($article['created_at']) ?>
+                            <span class="ml-2 bg-gray-700 text-white rounded-full px-3 py-1">
+                                <?= htmlspecialchars($article['category_id']) ?>
+                            </span>
+                        </div>
+                        <div class="font-weight-bold"><?= htmlspecialchars($article['title']) ?></div>
+                        <div class="text-gray-800">
+                            <?= number_format($article['views']) ?> views
+                        </div>
+                    </div>
+                    <div class="ml-2">
+                        <a href="./entities/articles/view-article.php?id" class="btn btn-success btn-sm">
+                            Read Article
+                        </a>
+                    </div>
+                </div>
+                <?php if ($index < count($top_articles) - 1): ?>
+                    <hr>
+                <?php endif; ?>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <p>No articles found.</p>
+        <?php endif; ?>
+    </div>
+</div>
+
                         <!-- Pie Chart -->
-                        <div class="col-xl-4 col-lg-5">
+                        <!-- <div class="col-xl-4 col-lg-5"> -->
                             <div class="card shadow mb-4">
                                 <!-- Card Header - Dropdown -->
                                 <div
@@ -345,7 +397,7 @@ foreach ($category_stats as $stat) {
                                                         <input type="hidden" name="status" value="accepte">
                                                         <button type="submit" class="btn btn-success btn-sm" 
                                                                 <?= $articlesm['status'] !== 'soumis' ? 'disabled' : '' ?>>
-                                                            Accepter
+                                                            ACCEPT
                                                         </button>
                                                     </form>
                                                     <form action="change-status.php" method="POST" style="display:inline;">
@@ -353,7 +405,7 @@ foreach ($category_stats as $stat) {
                                                         <input type="hidden" name="status" value="refuse">
                                                         <button type="submit" class="btn btn-danger btn-sm" 
                                                                 <?= $articlesm['status'] !== 'soumis' ? 'disabled' : '' ?>>
-                                                            Refuser
+                                                            REJECT
                                                         </button>
                                                     </form>
                                                 </td>

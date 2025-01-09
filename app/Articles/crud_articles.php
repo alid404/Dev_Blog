@@ -36,6 +36,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_article'])) {
     $article->setMetaDescription($_POST['meta_description']);
     $article->setCategoryId($_POST['category_id']);
     $article->setScheduledDate($_POST['scheduled_date']);
+    $article->setAuthorId($_SESSION['author_id']); // Add the author ID
+    $article->setStatus('soumis'); // Set initial status as submitted
 
     if (isset($_POST['featured_image']) && !empty($_POST['featured_image'])) {
         $imageUrl = $_POST['featured_image'];
@@ -58,6 +60,78 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_article'])) {
     }
 }
 
+
+/* if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_article'])) {
+    try {
+        // Validate required fields
+        $requiredFields = ['title', 'content', 'category_id'];
+        $errors = [];
+
+        foreach ($requiredFields as $field) {
+            if (empty($_POST[$field])) {
+                $errors[] = ucfirst($field) . " is required.";
+            }
+        }
+
+        if (!empty($errors)) {
+            // Store errors in session
+            $_SESSION['article_errors'] = $errors;
+            header("Location: author_dashboard.php");
+            exit;
+        }
+
+        // Prepare article data
+        $articleData = [
+            'title' => $_POST['title'],
+            'content' => $_POST['content'],
+            'excerpt' => $_POST['excerpt'] ?? '',
+            'meta_description' => $_POST['meta_description'] ?? '',
+            'category_id' => $_POST['category_id'],
+            'featured_image' => $_POST['featured_image'] ?? null,
+            'scheduled_date' => !empty($_POST['scheduled_date']) ? $_POST['scheduled_date'] : null,
+            'tags' => $_POST['tags'] ?? [],
+            'user_id' => $_SESSION['user_id']
+        ];
+
+        // Set article properties
+        $article->setTitle($articleData['title']);
+        $article->setContent($articleData['content']);
+        $article->setExcerpt($articleData['excerpt']);
+        $article->setMetaDescription($articleData['meta_description']);
+        $article->setCategoryId($articleData['category_id']);
+        $article->setScheduledDate($articleData['scheduled_date']);
+        $article->setStatus('soumis');
+        $article->setUserId($articleData['user_id']);
+
+        // Set featured image if provided
+        if ($articleData['featured_image']) {
+            $article->setFeaturedImage($articleData['featured_image']);
+        }
+
+        // Create article and handle tags
+        $result = $article->create($articleData['tags']);
+
+        if ($result) {
+            // Success message
+            $_SESSION['success_message'] = "Article created successfully and submitted for review.";
+            header("Location: author_dashboard.php");
+            exit;
+        } else {
+            // Error message
+            $_SESSION['error_message'] = "Failed to create article. Please try again.";
+            header("Location: author_dashboard.php");
+            exit;
+        }
+    } catch (Exception $e) {
+        // Log the error and show a generic error message
+        error_log("Article creation error: " . $e->getMessage());
+        $_SESSION['error_message'] = "An unexpected error occurred. Please try again.";
+        header("Location: author_dashboard.php");
+        exit;
+    }
+}
+
+
 // DELETE
 if (isset($_GET['id']) && !empty($_GET['id'])) {
     $articleId = (int)$_GET['id'];
@@ -69,7 +143,7 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
             echo "Erreur lors de la suppression de l'article.";
         }
     }
-}
+} */
 
 // UPDATE
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['update_article'])) {

@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . './crud_categories.php';
+require_once './crud_categories.php';
 ?>
 
 <!DOCTYPE html>
